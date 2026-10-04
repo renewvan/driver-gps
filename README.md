@@ -11,39 +11,55 @@ unit-testable conversion math with no I/O, a layered
 publisher with LWT (`publisher.py`), a thin publish loop (`driver.py`), a
 systemd unit, and its own Dockerfile + CI publishing a versioned image.
 
-**This repo is a scaffold, not a working node yet** — `driver.py`'s
-`read_and_publish()` raises `NotImplementedError` until the design round
-below is resolved and implemented.
-
-## Design checklist (resolve before first real commit)
-
-- [ ] **Sensing or remapping?** Does this node own the sensing (reads
-      hardware directly, like node-tank's ADS1115) or remap an existing feed
-      (like node-battery's Victron remap)?
-- [ ] **Topics published** — replace the section below with the real
-      `renewvan/gps/<id>/<property>` fields, split into identity
-      (published once) vs live (republished every poll). See node-tank's
-      README "Topics published" section for the shape to match.
-- [ ] **Hub schema** — does GPS extend an existing
-      `hub/schema/*.schema.json` entity, or need a new
-      `hub/schema/gps.schema.json` + example fixtures
-      (`hub/schema/validate-examples.sh` must pass)?
-- [ ] **Wiring** — replace the section below with real hardware
-      wiring/config, or delete it if this node remaps an existing feed
-      instead of reading hardware directly.
-- [ ] **`NodeConfig`** (`node_gps/config.py`) — add the hardware/feed
-      -specific fields this node needs, mirrored into `config.default.ini`.
-- [ ] **Hub integration** — once a version is tagged, add a
-      `node-gps` service block to `hub/docker-compose.yml` (pattern:
-      node-tank's block) and any new keys to `hub/.env.example`.
+**This node owns the sensing**: it reads a USB GPS/GLONASS/BeiDou module
+directly over its serial port (NMEA 0183 sentences, no vendor cloud/MQTT
+feed to remap), parses with `pynmea2`, and publishes via `pyserial`.
 
 ## Topics published
 
-TODO — see the design checklist above.
+Retained, under `renewvan/gps/<id>/`:
+
+Every field is **live** (republished on every poll, default 3s) — there
+are no identity/startup-only fields. Position tracking has no meaningful
+"publish once" subset; downstream logging (the `logger` repo) is what
+turns this live stream into a trip history, not this node.
+
+- `fix_quality` — `no_fix` / `gps` / `dgps` / `pps` / `rtk` / `float_rtk` / `estimated` / `manual` / `simulation` (GGA sentence's fix-quality field); unconditional
+- `satellites_in_use` — integer ≥0 (GGA); unconditional, 0 when `fix_quality` is `no_fix`
+- `latitude` — number, decimal degrees WGS84, positive north; present only when `fix_quality != no_fix`
+- `longitude` — number, decimal degrees WGS84, positive east; present only when `fix_quality != no_fix`
+- `altitude_m` — number, meters above MSL (GGA); present only when `fix_quality != no_fix`
+- `hdop` — number ≥0, horizontal dilution of precision (GGA); present only when `fix_quality != no_fix`
+- `speed_kmh` — number ≥0, ground speed converted from RMC's knots (×1.852); present only when `fix_quality != no_fix`
+- `course_deg` — number 0–360, track made good, degrees true (RMC); present only when `fix_quality != no_fix`
+- `fix_time` — string, ISO-8601 UTC timestamp with explicit `+00:00` offset (RMC date+time — the GPS clock is always UTC); present only when `fix_quality != no_fix`
+
+**Node liveness** (not GPS-keyed):
+- `renewvan/gps/health` — `online`/`offline` via MQTT LWT
+
+Payload shapes match `hub`'s `schema/gps.schema.json`.
 
 ## Wiring
 
-TODO — see the design checklist above.
+Plug the USB GPS module into the Pi. It's a USB-serial device (no I2C/GPIO
+wiring) — the only setup is finding its device path and granting the
+runtime user permission to open it:
+
+1. **Find the serial device**: `dmesg | tail` right after plugging in.
+   u-blox-native USB (CDC-ACM) chips usually enumerate as `/dev/ttyACM0`;
+   CP2102/CH340 USB-serial bridge clones (common on cheap "U-8 chip"
+   GLONASS/BeiDou/GPS dongles) usually enumerate as `/dev/ttyUSB0`.
+2. **Set `serial_port`** in `config.ini` to that path (see
+   `config.ini.example`). `baud_rate` defaults to `9600`, the near-universal
+   NMEA factory default for these modules.
+3. **Grant serial access**: add the runtime user to the `dialout` group
+   (`sudo usermod -aG dialout <user>`) — `node-gps.service` already sets
+   `SupplementaryGroups=dialout`. No group membership means a permission
+   error opening the port, not a crash on missing hardware.
+4. **Multiple USB-serial devices on the same Pi?** `/dev/ttyUSB0` isn't
+   stable across reboots/replugs if there's more than one. Pin a udev rule
+   by vendor/product ID (`udevadm info -a -n /dev/ttyUSB0`) to a symlink
+   like `/dev/gps0`, and point `serial_port` at that instead.
 
 ## Development
 

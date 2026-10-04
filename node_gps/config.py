@@ -34,10 +34,9 @@ class MqttConfig:
 class NodeConfig:
     id: str  # topic path segment, e.g. renewvan/gps/<id>/...
     update_interval_ms: int
-    # TODO: add GPS-specific fields here (e.g. serial port,
-    # baud rate, I2C address, remote feed host) -- see node-tank's
-    # TankConfig for the shape of a hardware-backed node, or
-    # node-battery's config for a feed-remap node.
+    serial_port: str  # e.g. /dev/ttyACM0 (u-blox native USB) or /dev/ttyUSB0 (CP2102/CH340 clone)
+    baud_rate: int  # NMEA output baud rate; 9600 is the near-universal default
+    read_timeout_s: float  # max time per poll to wait for a fresh NMEA sentence
 
 
 @dataclass(frozen=True)
@@ -73,5 +72,8 @@ def load_config(
         node=NodeConfig(
             id=node.get("id", "gps"),
             update_interval_ms=node.getint("update_interval_ms", 3000),
+            serial_port=node.get("serial_port", "/dev/ttyACM0"),
+            baud_rate=node.getint("baud_rate", 9600),
+            read_timeout_s=node.getfloat("read_timeout_s", 2.0),
         ),
     )

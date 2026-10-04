@@ -2,7 +2,12 @@
 ; ======================================
 ; Copy this file to config.ini and override only what differs from
 ; config.default.ini. config.ini is gitignored — it holds this
-; installation's real MQTT broker host and any hardware-specific settings.
+; installation's real MQTT broker host and the actual serial device path.
 
 [mqtt]
 host = 192.168.1.10
+
+[node]
+; Found via `dmesg | tail` after plugging the module in -- see
+; config.default.ini's [node] comments for the ttyACM0 vs ttyUSB0 split.
+serial_port = /dev/ttyUSB0

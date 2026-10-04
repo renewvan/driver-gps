@@ -10,6 +10,7 @@ ExecStart=/opt/node-gps/.venv/bin/python -m node_gps.main --config /opt/node-gps
 Restart=on-failure
 RestartSec=5
 User=renewvan
+SupplementaryGroups=dialout
 
 [Install]
 WantedBy=multi-user.target
