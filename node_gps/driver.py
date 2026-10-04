@@ -27,19 +27,27 @@ def _topic(node_id: str, prop: str) -> str:
 def read_and_publish(publisher: Publisher, reader: SerialReader, config: AppConfig) -> None:
     """Read the latest NMEA fix and publish every live field.
 
-    fix_quality/satellites_in_use are always published; every other field
-    is published only once a fix is acquired (fix_quality != "no_fix") --
-    matches hub/schema/gps.schema.json's conditional-optional fields.
+    fix_quality/satellites_in_use/avg_snr_db are published whenever
+    available (avg_snr_db is independent of fix_quality -- it may be
+    absent on the very first poll before any GSV sentence has streamed
+    through); every other field is published only once a fix is acquired
+    (fix_quality != "no_fix") -- matches hub/schema/gps.schema.json's
+    conditional-optional fields.
     """
     fix = reader.read_fix(config.node.read_timeout_s)
     node_id = config.node.id
 
     publisher.publish(_topic(node_id, "fix_quality"), json.dumps(fix.fix_quality))
     publisher.publish(_topic(node_id, "satellites_in_use"), json.dumps(fix.satellites_in_use))
+    if fix.avg_snr_db is not None:
+        publisher.publish(_topic(node_id, "avg_snr_db"), json.dumps(fix.avg_snr_db))
 
     if fix.fix_quality == "no_fix":
         logger.info(
-            "gps=%s fix_quality=no_fix satellites_in_use=%d", node_id, fix.satellites_in_use
+            "gps=%s fix_quality=no_fix satellites_in_use=%d avg_snr_db=%s",
+            node_id,
+            fix.satellites_in_use,
+            fix.avg_snr_db,
         )
         return
 

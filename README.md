@@ -26,6 +26,7 @@ turns this live stream into a trip history, not this node.
 
 - `fix_quality` — `no_fix` / `gps` / `dgps` / `pps` / `rtk` / `float_rtk` / `estimated` / `manual` / `simulation` (GGA sentence's fix-quality field); unconditional
 - `satellites_in_use` — integer ≥0 (GGA); unconditional, 0 when `fix_quality` is `no_fix`
+- `avg_snr_db` — number ≥0, mean signal strength (C/N0, dB-Hz) across every tracked satellite with a decoded SNR (GSV sentences, any constellation); independent of `fix_quality` — meaningful even before/without a fix. Absent only before the first GSV sentence is decoded.
 - `latitude` — number, decimal degrees WGS84, positive north; present only when `fix_quality != no_fix`
 - `longitude` — number, decimal degrees WGS84, positive east; present only when `fix_quality != no_fix`
 - `altitude_m` — number, meters above MSL (GGA); present only when `fix_quality != no_fix`
