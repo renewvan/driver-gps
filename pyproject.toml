@@ -1,0 +1,22 @@
+[project]
+name = "node-gps"
+version = "0.1.0"
+description = "USB GPS module node (GLONASS/BeiDou/GPS) for renewvan position telemetry"
+requires-python = ">=3.11"
+dependencies = [
+    "paho-mqtt>=1.6,<2",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["node_gps*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]

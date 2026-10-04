@@ -1,0 +1,15 @@
+[Unit]
+Description=node-gps MQTT node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/node-gps
+ExecStart=/opt/node-gps/.venv/bin/python -m node_gps.main --config /opt/node-gps/config.ini
+Restart=on-failure
+RestartSec=5
+User=renewvan
+
+[Install]
+WantedBy=multi-user.target
