@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
+from pathlib import Path
 
 from node_gps.config import AppConfig
+from node_gps.node_info import build_info_payload
 from node_gps.publisher import Publisher
 from node_gps.serial_reader import SerialReader
 
@@ -76,7 +79,9 @@ def read_and_publish(publisher: Publisher, reader: SerialReader, config: AppConf
 
 
 def run(config: AppConfig) -> None:
-    publisher = Publisher(config.mqtt)
+    # Host serial is read once, here: Publisher republishes this same payload on every reconnect.
+    info_payload = build_info_payload(env=os.environ, cpuinfo_path=Path("/proc/cpuinfo"))
+    publisher = Publisher(config.mqtt, info_payload)
     publisher.connect()
     reader = SerialReader(config.node.serial_port, config.node.baud_rate)
     try:
