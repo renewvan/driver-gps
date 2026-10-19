@@ -23,11 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Hub commit whose schema/node-manifest.schema.json this repo validates against.
-      # KNOWN RED: this is hub main at the time of writing, which predates renewvan/hub#36,
-      # so the schema file does not exist at this ref and the fetch below fails. Bump to a
-      # hub tag/SHA containing schema/node-manifest.schema.json once #36 is merged.
-      # Always pin a ref (never track main) so a hub schema change can't break every node at once.
-      HUB_REF: e5808af4eb85ef9d1166bf7455c7432305c5e86b
+      # Always pin a ref (never track main) so a hub schema change can't break every node at once;
+      # bump it deliberately, together with any manifest change the new schema needs.
+      HUB_REF: a334f02d3c82a11c5cf93b345acfde740b1e0d53
     steps:
       - uses: actions/checkout@v5
       - name: Fetch hub manifest schema
