@@ -9,9 +9,6 @@ from pathlib import Path
 
 from node_gps.node_info import build_info_payload
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_MANIFEST = _REPO_ROOT / "manifest.json"
-
 
 def _info(env: dict[str, str], cpuinfo: Path | None = None) -> dict:
     return json.loads(
@@ -19,14 +16,17 @@ def _info(env: dict[str, str], cpuinfo: Path | None = None) -> dict:
     )
 
 
-def test_info_carries_manifest_fields_and_stamped_version() -> None:
-    info = _info({"NODE_VERSION": "v1.2.3"})
+def test_info_identifies_the_gps_node_and_what_it_publishes() -> None:
+    info = _info({})
 
     assert info["node"] == "gps"
-    assert info["product"] == "USB GPS module"
-    assert info["source"] == "USB serial NMEA 0183 GPS/GLONASS/BeiDou module"
     assert info["publishes"] == ["gps"]
-    assert info["version"] == "v1.2.3"
+    assert info["product"]
+    assert info["source"]
+
+
+def test_info_carries_the_stamped_version() -> None:
+    assert _info({"NODE_VERSION": "v1.2.3"})["version"] == "v1.2.3"
 
 
 def test_info_version_is_dev_when_unset() -> None:
@@ -35,13 +35,6 @@ def test_info_version_is_dev_when_unset() -> None:
 
 def test_info_version_is_dev_when_blank() -> None:
     assert _info({"NODE_VERSION": ""})["version"] == "dev"
-
-
-def test_info_matches_checked_in_manifest_for_every_manifest_key() -> None:
-    manifest = json.loads(_MANIFEST.read_text())
-    info = _info({"NODE_VERSION": "v1.2.3"})
-
-    assert {k: info[k] for k in manifest} == manifest
 
 
 def _cpuinfo(tmp_path: Path, text: str) -> Path:

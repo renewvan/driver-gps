@@ -23,8 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Hub commit whose schema/node-manifest.schema.json this repo validates against.
-      # Bump deliberately (never track main) so a hub schema change can't break every node at once.
-      # Must be a hub ref that contains the schema (renewvan/hub#36).
+      # KNOWN RED: this is hub main at the time of writing, which predates renewvan/hub#36,
+      # so the schema file does not exist at this ref and the fetch below fails. Bump to a
+      # hub tag/SHA containing schema/node-manifest.schema.json once #36 is merged.
+      # Always pin a ref (never track main) so a hub schema change can't break every node at once.
       HUB_REF: e5808af4eb85ef9d1166bf7455c7432305c5e86b
     steps:
       - uses: actions/checkout@v5

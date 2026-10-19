@@ -54,9 +54,12 @@ The payload is `manifest.json` (repo root) plus two runtime fields:
   `manufacturer`/`homepage`. It is the only hand-edited part. It must **not**
   contain `version` or `host_serial`; CI validates it against the hub's
   `node-manifest.schema.json` at the hub ref pinned in
-  `.github/workflows/test.yml` (`scripts/validate-manifest.sh`). The Docker
-  image copies it to `node_gps/manifest.json`; the node reads that copy beside
-  its module and falls back to the repo-root file in a checkout.
+  `.github/workflows/test.yml` (`scripts/validate-manifest.sh`). The pin
+  currently points at a hub ref that predates `renewvan/hub#36`, so the
+  `manifest` CI job stays red until the pin is bumped to a ref containing the
+  schema. The Docker image copies the manifest to `node_gps/manifest.json`;
+  the node reads that copy beside its module and falls back to the repo-root
+  file in a checkout.
 - **`version`** — the git release tag, and nothing else. The release workflow
   passes it as the `NODE_VERSION` build argument, which the Dockerfile exposes
   as an environment variable. When it is unset or empty (a checkout or
