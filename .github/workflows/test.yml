@@ -18,3 +18,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-test.txt
       - run: pytest tests/ -v --tb=short
+
+  manifest:
+    runs-on: ubuntu-latest
+    env:
+      # Hub commit whose schema/node-manifest.schema.json this repo validates against.
+      # Always pin a ref (never track main) so a hub schema change can't break every node at once;
+      # bump it deliberately, together with any manifest change the new schema needs.
+      HUB_REF: a334f02d3c82a11c5cf93b345acfde740b1e0d53
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch hub manifest schema
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/renewvan/hub/${HUB_REF}/schema/node-manifest.schema.json" \
+            --output "$RUNNER_TEMP/node-manifest.schema.json"
+      - name: Validate manifest.json
+        run: scripts/validate-manifest.sh "$RUNNER_TEMP/node-manifest.schema.json"

@@ -26,6 +26,7 @@ turns this live stream into a trip history, not this node.
 
 - `fix_quality` — `no_fix` / `gps` / `dgps` / `pps` / `rtk` / `float_rtk` / `estimated` / `manual` / `simulation` (GGA sentence's fix-quality field); unconditional
 - `satellites_in_use` — integer ≥0 (GGA); unconditional, 0 when `fix_quality` is `no_fix`
+- `avg_snr_db` — number ≥0, mean signal strength (C/N0, dB-Hz) across every tracked satellite with a decoded SNR (GSV sentences, any constellation); independent of `fix_quality` — meaningful even before/without a fix. Absent only before the first GSV sentence is decoded.
 - `latitude` — number, decimal degrees WGS84, positive north; present only when `fix_quality != no_fix`
 - `longitude` — number, decimal degrees WGS84, positive east; present only when `fix_quality != no_fix`
 - `altitude_m` — number, meters above MSL (GGA); present only when `fix_quality != no_fix`
@@ -36,8 +37,41 @@ turns this live stream into a trip history, not this node.
 
 **Node liveness** (not GPS-keyed):
 - `renewvan/gps/health` — `online`/`offline` via MQTT LWT
+- `renewvan/gps/info` — retained Node info (see below)
 
 Payload shapes match `hub`'s `schema/gps.schema.json`.
+
+## Node info
+
+On every MQTT connect the node publishes retained JSON to
+`renewvan/gps/info`, **immediately before** `online` on
+`renewvan/gps/health`. Info stays retained when the node goes offline or its
+last will fires, so a consumer can show "offline, last seen vX".
+
+The payload is `manifest.json` (repo root) plus two runtime fields:
+
+- **Manifest** — `node`, `product`, `source`, `publishes`, optional
+  `manufacturer`/`homepage`. It is the only hand-edited part. It must **not**
+  contain `version` or `host_serial`; CI validates it against the hub's
+  `node-manifest.schema.json` at the hub ref pinned in
+  `.github/workflows/test.yml` (`scripts/validate-manifest.sh`). The pin
+  currently points at a hub ref that predates `renewvan/hub#36`, so the
+  `manifest` CI job stays red until the pin is bumped to a ref containing the
+  schema. The Docker image copies the manifest to `node_gps/manifest.json`;
+  the node reads that copy beside its module and falls back to the repo-root
+  file in a checkout.
+- **`version`** — the git release tag, and nothing else. The release workflow
+  passes it as the `NODE_VERSION` build argument, which the Dockerfile exposes
+  as an environment variable. When it is unset or empty (a checkout or
+  untagged image) the node reports the literal `dev`. There is no `version`
+  file or `__version__`, and `pyproject.toml`'s `0.0.0` is a placeholder that
+  nothing reads.
+- **`host_serial`** — the `Serial` line of the host's `/proc/cpuinfo`, read once
+  at start (a default container can read it; no mount needed). Omitted when
+  the file is unreadable or the serial is empty or all zeros.
+
+`node_gps/node_info.py` is deliberately copied into each node repo rather than
+shared as a package (`renewvan/hub#35`).
 
 ## Wiring
 
@@ -108,3 +142,7 @@ Tagging a GitHub release builds and publishes
 `ghcr.io/<owner>/node-gps:<tag>`, which `hub`'s deployment compose file pins
 by tag (never builds from source — see
 `hub/docs/adr/0001-compose-services-via-pinned-images-not-git-submodules.md`).
+
+The release tag is also stamped into the image as `NODE_VERSION` (see
+[Node info](#node-info)), so the version a node publishes always equals its
+image tag.

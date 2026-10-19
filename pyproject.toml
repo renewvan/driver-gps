@@ -1,6 +1,6 @@
 [project]
 name = "node-gps"
-version = "0.1.0"
+version = "0.0.0"  # placeholder, nothing reads it: the git release tag is the only version source
 description = "USB GPS module node (GLONASS/BeiDou/GPS) for renewvan position telemetry"
 requires-python = ">=3.11"
 dependencies = [

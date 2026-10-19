@@ -46,3 +46,27 @@ in the published field name" convention `node-tank` set with `capacity_l`.
 `course_deg` is degrees true (not magnetic), 0–360.
 _Avoid_: Heading (ambiguous with magnetic heading; RMC's course is track
 made good over the ground, not where the antenna points).
+
+**avg_snr_db**:
+Mean carrier-to-noise ratio (C/N0, in dB-Hz) across every satellite with
+a decoded SNR value in the GSV sentences seen during a poll, any
+constellation (GPS/GLONASS/BeiDou). Unlike every other field besides
+`fix_quality`/`satellites_in_use`, it's independent of fix status — a
+module can be tracking satellites with real signal strength well before
+(or without ever) acquiring a usable fix, and this field reflects that.
+Not the same population as `satellites_in_use`: GSV's tracked-satellite
+set isn't necessarily the exact subset GGA used for the fix.
+_Avoid_: Signal strength (too generic — this project's field name is
+avg_snr_db), RSSI (a different metric family; GPS receivers report C/N0,
+not received signal strength).
+
+**HDOP**:
+Horizontal Dilution of Precision — a unitless multiplier on raw
+horizontal position error, driven by satellite *geometry* (how spread
+across the sky the satellites in use are), not signal strength. Low
+(≤1–2) means well-spread satellites and a tight fix; high means
+clustered satellites (e.g. sky mostly blocked on one side) and a loose
+fix even with strong signal. From the GGA sentence. Present only when
+`fix_quality != no_fix`.
+_Avoid_: Accuracy, precision (HDOP is a multiplier on error, not an
+error value itself — it has no units and isn't meters).
