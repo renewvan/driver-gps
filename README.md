@@ -53,11 +53,9 @@ The payload is `manifest.json` (repo root) plus two runtime fields:
 - **Manifest** — `device`, `product`, `source`, `publishes`, optional
   `manufacturer`/`homepage`. It is the only hand-edited part. It must **not**
   contain `version` or `board_serial`; CI validates it against the hub's
-  `device-manifest.schema.json` at the hub ref pinned in
-  `.github/workflows/test.yml` (`scripts/validate-manifest.sh`). The pin
-  currently points at a hub ref that predates `renewvan/hub#36`, so the
-  `manifest` CI job stays red until the pin is bumped to a ref containing the
-  schema. The Docker image copies the manifest to `driver_gps/manifest.json`;
+  `device-manifest.schema.json` through hub's reusable manifest workflow
+  (`.github/workflows/manifest.yml`; its `hub-ref` is the same pinned hub
+  commit as the workflow itself, bump both together). The Docker image copies the manifest to `driver_gps/manifest.json`;
   the device reads that copy beside its module and falls back to the repo-root
   file in a checkout.
 - **`version`** — the git release tag, and nothing else. The release workflow
@@ -138,10 +136,18 @@ pytest tests/ -v
 
 ## Releasing
 
-Tagging a GitHub release builds and publishes
-`ghcr.io/<owner>/driver-gps:<tag>`, which `hub`'s deployment compose file pins
+Start a release from **Actions → Release → Run workflow**, or
+`gh workflow run release.yml -f bump=minor` (`patch`, `major`, or `-f version=0.2.0`
+to set it explicitly). One run works out the next version from the latest `v*` tag,
+tags `main`, creates the GitHub release and builds and publishes
+`ghcr.io/<owner>/driver-gps:<tag>` (and `:latest`), which `hub`'s deployment compose file pins
 by tag (never builds from source — see
 `hub/docs/adr/0001-compose-services-via-pinned-images-not-git-submodules.md`).
+
+A beta from a feature branch: dispatch the workflow on that branch with **prerelease**
+ticked. It runs the tests, publishes only its own tag (never `:latest`) and writes nothing
+to `main`. The process is shared by every renewvan repo and lives in `hub` (`hub/docs/adr/0015-one-release-process-via-reusable-workflows.md`);
+this repo's `release.yml` only says what it ships.
 
 The release tag is also stamped into the image as `DEVICE_VERSION` (see
 [Device info](#device-info)), so the version a device publishes always equals its
