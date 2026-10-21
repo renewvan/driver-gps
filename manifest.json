@@ -1,7 +1,7 @@
 {
-  "node": "gps",
+  "device": "gps",
   "product": "USB GPS module",
   "source": "USB serial NMEA 0183 GPS/GLONASS/BeiDou module",
   "publishes": ["gps"],
-  "homepage": "https://github.com/renewvan/node-gps"
+  "homepage": "https://github.com/renewvan/driver-gps"
 }

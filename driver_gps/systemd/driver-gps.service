@@ -1,12 +1,12 @@
 [Unit]
-Description=node-gps MQTT node
+Description=driver-gps MQTT device
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/node-gps
-ExecStart=/opt/node-gps/.venv/bin/python -m node_gps.main --config /opt/node-gps/config.ini
+WorkingDirectory=/opt/driver-gps
+ExecStart=/opt/driver-gps/.venv/bin/python -m driver_gps.main --config /opt/driver-gps/config.ini
 Restart=on-failure
 RestartSec=5
 User=renewvan

@@ -1,10 +1,10 @@
 """Pure NMEA 0183 sentence parsing and field mapping -> GpsFix.
 
 No I/O: takes raw sentence strings (as read off the serial port by
-serial_reader.py) through pynmea2 and maps the result onto this node's
+serial_reader.py) through pynmea2 and maps the result onto this device's
 canonical field names/units, matching hub/schema/gps.schema.json. Every
 function here is pure and fixture-testable -- no serial hardware required
-(prior art: node-tank's calibration.py).
+(prior art: driver-tank's calibration.py).
 """
 
 from __future__ import annotations
@@ -142,9 +142,7 @@ def apply_rmc(fix: GpsFix, rmc: pynmea2.types.talker.RMC) -> GpsFix:
         return fix
     fix_time = None
     if rmc.datestamp is not None and rmc.timestamp is not None:
-        fix_time = datetime.combine(
-            rmc.datestamp, rmc.timestamp, tzinfo=UTC
-        ).isoformat()
+        fix_time = datetime.combine(rmc.datestamp, rmc.timestamp, tzinfo=UTC).isoformat()
     return replace(
         fix,
         speed_kmh=(

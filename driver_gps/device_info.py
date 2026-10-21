@@ -1,8 +1,8 @@
-"""Node info: the retained payload published on renewvan/<node>/info.
+"""Device info: the retained payload published on renewvan/<device>/info.
 
-Copied per repo on purpose (no shared package; see renewvan/hub#35). Node
+Copied per repo on purpose (no shared package; see renewvan/hub#35). Device
 info is the static manifest.json plus the build-stamped version and the
-Host serial.
+Board serial.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def _load_manifest() -> dict:
     raise FileNotFoundError(f"manifest.json not found in {[str(p) for p in _MANIFEST_PATHS]}")
 
 
-def _read_host_serial(cpuinfo_path: Path) -> str | None:
+def _read_board_serial(cpuinfo_path: Path) -> str | None:
     """`Serial` line of /proc/cpuinfo; None when unreadable, empty or all zeros."""
     try:
         text = cpuinfo_path.read_text()
@@ -42,8 +42,8 @@ def _read_host_serial(cpuinfo_path: Path) -> str | None:
 
 def build_info_payload(env: Mapping[str, str], cpuinfo_path: Path) -> str:
     info = _load_manifest()
-    info["version"] = env.get("NODE_VERSION") or "dev"
-    host_serial = _read_host_serial(cpuinfo_path)
-    if host_serial is not None:
-        info["host_serial"] = host_serial
+    info["version"] = env.get("DEVICE_VERSION") or "dev"
+    board_serial = _read_board_serial(cpuinfo_path)
+    if board_serial is not None:
+        info["board_serial"] = board_serial
     return json.dumps(info)
