@@ -25,7 +25,7 @@ jobs:
       # Hub commit whose schema/device-manifest.schema.json this repo validates against.
       # Always pin a ref (never track main) so a hub schema change can't break every device at once;
       # bump it deliberately, together with any manifest change the new schema needs.
-      HUB_REF: a334f02d3c82a11c5cf93b345acfde740b1e0d53
+      HUB_REF: 57c0928fcc4636cb9d3c1f7914fcb2d012baa723
     steps:
       - uses: actions/checkout@v5
       - name: Fetch hub manifest schema
