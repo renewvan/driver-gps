@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from node_gps.config import load_config
+from driver_gps.config import load_config
 
 
 def test_load_config_defaults() -> None:
     config = load_config()
     assert config.mqtt.port == 1883
-    assert config.node.id == "gps"
+    assert config.device.id == "gps"
 
 
 def test_load_config_local_override(tmp_path: Path) -> None:

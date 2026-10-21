@@ -1,11 +1,11 @@
 """Serial-port I/O: reads NMEA lines from the GPS module's USB-serial port
 and folds them into a GpsFix via nmea.py's pure parsing functions.
 
-Owns the one stateful piece this node has -- the latest GGA/RMC sentence
+Owns the one stateful piece this device has -- the latest GGA/RMC sentence
 seen -- so a caller can poll read_fix() on a fixed interval and always get
 the most recently decoded fix, even though the module streams sentences
 continuously and asynchronously from the poll loop. Not unit-tested
-directly (thin I/O glue, same as node-tank's adc.py wrapper); nmea.py's
+directly (thin I/O glue, same as driver-tank's adc.py wrapper); nmea.py's
 parse/apply functions carry the fixture-tested logic.
 """
 
@@ -15,7 +15,7 @@ import logging
 import time
 from dataclasses import dataclass
 
-from node_gps.nmea import (
+from driver_gps.nmea import (
     GpsFix,
     apply_gga,
     apply_gsv,

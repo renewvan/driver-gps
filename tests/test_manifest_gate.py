@@ -2,7 +2,7 @@
 
 The real schema lives in renewvan/hub and is fetched by CI at a pinned ref.
 These tests use a minimal schema with the same contract (draft-07,
-additionalProperties false, no `version`/`host_serial` property) so the
+additionalProperties false, no `version`/`board_serial` property) so the
 gate's pass/fail behaviour is proven without network access to the hub.
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from node_gps.publisher import INFO_TOPIC
+from driver_gps.publisher import INFO_TOPIC
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _GATE = _REPO_ROOT / "scripts" / "validate-manifest.sh"
@@ -22,10 +22,10 @@ _MANIFEST = _REPO_ROOT / "manifest.json"
 _SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
-    "required": ["node", "product", "source", "publishes"],
+    "required": ["device", "product", "source", "publishes"],
     "additionalProperties": False,
     "properties": {
-        "node": {"type": "string"},
+        "device": {"type": "string"},
         "product": {"type": "string"},
         "source": {"type": "string"},
         "publishes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
@@ -74,15 +74,15 @@ def test_gate_fails_on_a_manifest_containing_version(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
-def test_gate_fails_on_a_manifest_containing_host_serial(tmp_path: Path) -> None:
-    manifest = json.loads(_MANIFEST.read_text()) | {"host_serial": "10000000a1b2c3d4"}
+def test_gate_fails_on_a_manifest_containing_board_serial(tmp_path: Path) -> None:
+    manifest = json.loads(_MANIFEST.read_text()) | {"board_serial": "10000000a1b2c3d4"}
 
     result = _gate(tmp_path, manifest)
 
     assert result.returncode != 0
 
 
-def test_info_topic_uses_the_manifest_node_key() -> None:
-    node = json.loads(_MANIFEST.read_text())["node"]
+def test_info_topic_uses_the_manifest_device_key() -> None:
+    device = json.loads(_MANIFEST.read_text())["device"]
 
-    assert INFO_TOPIC == f"renewvan/{node}/info"
+    assert INFO_TOPIC == f"renewvan/{device}/info"

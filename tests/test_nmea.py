@@ -1,11 +1,11 @@
 """Fixture-sentence tests for nmea.py's pure parse/apply functions -- no
 serial hardware or MQTT broker required.
 
-Prior art: node-tank's tests/test_calibration.py (fixture input, pure
+Prior art: driver-tank's tests/test_calibration.py (fixture input, pure
 function, no I/O).
 """
 
-from node_gps.nmea import (
+from driver_gps.nmea import (
     GpsFix,
     apply_gga,
     apply_gsv,
@@ -124,4 +124,3 @@ def test_apply_gga_no_fix_preserves_avg_snr_db() -> None:
     cleared = apply_gga(had_fix_and_signal, no_fix_gga)
     assert cleared.fix_quality == "no_fix"
     assert cleared.avg_snr_db == had_fix_and_signal.avg_snr_db
-

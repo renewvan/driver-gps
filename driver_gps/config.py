@@ -1,8 +1,8 @@
 """Layered INI config: config.default.ini (shipped) + config.ini (local
 override).
 
-Same two-file pattern as every renewvan/node-* repo (see
-node-tank/node_tank/config.py): config.default.ini ships every key with a
+Same two-file pattern as every renewvan/driver-* repo (see
+driver-tank/driver_tank/config.py): config.default.ini ships every key with a
 safe default and is never edited at an install; config.ini is a gitignored,
 install-local file that overrides only what differs.
 """
@@ -31,7 +31,7 @@ class MqttConfig:
 
 
 @dataclass(frozen=True)
-class NodeConfig:
+class DeviceConfig:
     id: str  # topic path segment, e.g. renewvan/gps/<id>/...
     update_interval_ms: int
     serial_port: str  # e.g. /dev/ttyACM0 (u-blox native USB) or /dev/ttyUSB0 (CP2102/CH340 clone)
@@ -42,7 +42,7 @@ class NodeConfig:
 @dataclass(frozen=True)
 class AppConfig:
     mqtt: MqttConfig
-    node: NodeConfig
+    device: DeviceConfig
 
 
 def load_config(
@@ -57,7 +57,7 @@ def load_config(
         logger.info("No local config override at %s; using defaults only", local_path)
 
     mqtt = parser["mqtt"]
-    node = parser["node"]
+    device = parser["device"]
 
     return AppConfig(
         mqtt=MqttConfig(
@@ -65,15 +65,15 @@ def load_config(
             port=mqtt.getint("port", 1883),
             username=mqtt.get("username") or None,
             password=mqtt.get("password") or None,
-            client_id=mqtt.get("client_id", "node-gps"),
+            client_id=mqtt.get("client_id", "driver-gps"),
             reconnect_min_delay=mqtt.getfloat("reconnect_min_delay", 1.0),
             reconnect_max_delay=mqtt.getfloat("reconnect_max_delay", 30.0),
         ),
-        node=NodeConfig(
-            id=node.get("id", "gps"),
-            update_interval_ms=node.getint("update_interval_ms", 3000),
-            serial_port=node.get("serial_port", "/dev/ttyACM0"),
-            baud_rate=node.getint("baud_rate", 9600),
-            read_timeout_s=node.getfloat("read_timeout_s", 2.0),
+        device=DeviceConfig(
+            id=device.get("id", "gps"),
+            update_interval_ms=device.getint("update_interval_ms", 3000),
+            serial_port=device.get("serial_port", "/dev/ttyACM0"),
+            baud_rate=device.getint("baud_rate", 9600),
+            read_timeout_s=device.getfloat("read_timeout_s", 2.0),
         ),
     )

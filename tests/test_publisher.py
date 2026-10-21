@@ -10,11 +10,11 @@ from dataclasses import dataclass
 
 import pytest
 
-from node_gps import publisher as publisher_module
-from node_gps.config import MqttConfig
-from node_gps.publisher import HEALTH_TOPIC, INFO_TOPIC, Publisher
+from driver_gps import publisher as publisher_module
+from driver_gps.config import MqttConfig
+from driver_gps.publisher import HEALTH_TOPIC, INFO_TOPIC, Publisher
 
-_INFO = '{"node": "gps", "version": "v1.2.3"}'
+_INFO = '{"device": "gps", "version": "v1.2.3"}'
 
 
 @dataclass
@@ -71,7 +71,7 @@ def publisher(fake: _FakeClient) -> Publisher:
         port=1883,
         username=None,
         password=None,
-        client_id="node-gps-test",
+        client_id="driver-gps-test",
         reconnect_min_delay=1.0,
         reconnect_max_delay=30.0,
     )
