@@ -1,4 +1,4 @@
-"""What read_and_publish puts on the bus for the `satellites` property.
+"""What read_and_publish puts on the bus: the `satellites` property and the `driver` attribution.
 
 A stub reader and publisher stand in for the serial port and the broker; the assertions are on
 the topic and the exact JSON payload a consumer receives.
@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-from driver_gps.config import AppConfig, DeviceConfig, MqttConfig
+from driver_gps.config import AppConfig, DriverConfig, MqttConfig
 from driver_gps.driver import read_and_publish
 from driver_gps.nmea import GpsFix, Satellite
 
@@ -34,7 +34,7 @@ class _Publisher:
 
 _CONFIG = AppConfig(
     mqtt=MqttConfig("localhost", 1883, None, None, "driver-gps", 1.0, 30.0),
-    device=DeviceConfig("gps", 3000, "/dev/null", 9600, 2.0),
+    driver=DriverConfig("gps", 3000, "/dev/null", 9600, 2.0),
 )
 
 
@@ -83,3 +83,14 @@ def test_an_empty_sky_is_published_as_an_empty_array() -> None:
 
 def test_nothing_is_published_for_satellites_before_the_first_gsv() -> None:
     assert _TOPIC not in _publish(GpsFix(satellites=None))
+
+
+def test_instance_names_its_driver_while_a_fix_is_held() -> None:
+    sent = _publish(GpsFix(fix_quality="gps", latitude=48.1, longitude=11.5))
+    assert json.loads(sent["renewvan/gps/gps/driver"]) == "gps"
+
+
+def test_instance_names_its_driver_without_a_fix() -> None:
+    sent = _publish(GpsFix(fix_quality="no_fix"))
+    assert json.loads(sent["renewvan/gps/gps/driver"]) == "gps"
+    assert "renewvan/gps/gps/latitude" not in sent

@@ -1,6 +1,6 @@
-"""Device info: the retained payload published on renewvan/<device>/info.
+"""Driver info: the retained payload published on renewvan/<driver>/info.
 
-Copied per repo on purpose (no shared package; see renewvan/hub#35). Device
+Copied per repo on purpose (no shared package; see renewvan/hub#35). Driver
 info is the static manifest.json plus the build-stamped version and the
 Board serial.
 """
@@ -42,7 +42,7 @@ def _read_board_serial(cpuinfo_path: Path) -> str | None:
 
 def build_info_payload(env: Mapping[str, str], cpuinfo_path: Path) -> str:
     info = _load_manifest()
-    info["version"] = env.get("DEVICE_VERSION") or "dev"
+    info["version"] = env.get("DRIVER_VERSION") or "dev"
     board_serial = _read_board_serial(cpuinfo_path)
     if board_serial is not None:
         info["board_serial"] = board_serial

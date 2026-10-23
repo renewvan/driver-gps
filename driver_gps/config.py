@@ -31,7 +31,7 @@ class MqttConfig:
 
 
 @dataclass(frozen=True)
-class DeviceConfig:
+class DriverConfig:
     id: str  # topic path segment, e.g. renewvan/gps/<id>/...
     update_interval_ms: int
     serial_port: str  # e.g. /dev/ttyACM0 (u-blox native USB) or /dev/ttyUSB0 (CP2102/CH340 clone)
@@ -42,7 +42,7 @@ class DeviceConfig:
 @dataclass(frozen=True)
 class AppConfig:
     mqtt: MqttConfig
-    device: DeviceConfig
+    driver: DriverConfig
 
 
 def load_config(
@@ -57,7 +57,7 @@ def load_config(
         logger.info("No local config override at %s; using defaults only", local_path)
 
     mqtt = parser["mqtt"]
-    device = parser["device"]
+    driver = parser["driver"]
 
     return AppConfig(
         mqtt=MqttConfig(
@@ -69,11 +69,11 @@ def load_config(
             reconnect_min_delay=mqtt.getfloat("reconnect_min_delay", 1.0),
             reconnect_max_delay=mqtt.getfloat("reconnect_max_delay", 30.0),
         ),
-        device=DeviceConfig(
-            id=device.get("id", "gps"),
-            update_interval_ms=device.getint("update_interval_ms", 3000),
-            serial_port=device.get("serial_port", "/dev/ttyACM0"),
-            baud_rate=device.getint("baud_rate", 9600),
-            read_timeout_s=device.getfloat("read_timeout_s", 2.0),
+        driver=DriverConfig(
+            id=driver.get("id", "gps"),
+            update_interval_ms=driver.getint("update_interval_ms", 3000),
+            serial_port=driver.get("serial_port", "/dev/ttyACM0"),
+            baud_rate=driver.getint("baud_rate", 9600),
+            read_timeout_s=driver.getfloat("read_timeout_s", 2.0),
         ),
     )

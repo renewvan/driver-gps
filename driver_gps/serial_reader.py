@@ -1,7 +1,7 @@
 """Serial-port I/O: reads NMEA lines from the GPS module's USB-serial port
 and folds them into a GpsFix via nmea.py's pure parsing functions.
 
-Owns the one stateful piece this device has -- the latest GGA/RMC sentence
+Owns the one stateful piece this Driver has -- the latest GGA/RMC sentence
 seen -- so a caller can poll read_fix() on a fixed interval and always get
 the most recently decoded fix, even though the module streams sentences
 continuously and asynchronously from the poll loop. Not unit-tested

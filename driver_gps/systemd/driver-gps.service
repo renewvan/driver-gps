@@ -1,5 +1,5 @@
 [Unit]
-Description=driver-gps MQTT device
+Description=driver-gps MQTT driver
 After=network-online.target
 Wants=network-online.target
 
