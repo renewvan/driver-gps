@@ -17,9 +17,12 @@ from dataclasses import dataclass
 
 from driver_gps.nmea import (
     GpsFix,
+    Satellite,
     apply_gga,
     apply_gsv,
     apply_rmc,
+    apply_satellites,
+    gsv_satellites,
     gsv_snr_values,
     parse_gga,
     parse_gsv,
@@ -43,14 +46,17 @@ class SerialReader:
     def read_fix(self, timeout_s: float) -> GpsFix:
         """Drain available NMEA lines for up to timeout_s, folding each GGA/RMC
         sentence seen onto the cached fix and accumulating every GSV
-        sentence's SNR readings, then averaging the latter once at the
-        end of the window. Returns the latest state.
+        sentence's SNR readings (averaged once at the end of the window) and
+        satellites (deduplicated once at the end of the window). Returns the
+        latest state.
 
         A device that's gone silent (unplugged, no satellite lock yet)
         simply returns the previously cached fix unchanged for this poll.
         """
         deadline = time.monotonic() + timeout_s
         snr_values: list[float] = []
+        satellites: list[Satellite] = []
+        saw_gsv = False
         while time.monotonic() < deadline:
             raw = self._serial.readline()
             if not raw:
@@ -63,8 +69,11 @@ class SerialReader:
             elif rmc := parse_rmc(line):
                 self._fix = apply_rmc(self._fix, rmc)
             elif gsv := parse_gsv(line):
+                saw_gsv = True
                 snr_values.extend(gsv_snr_values(gsv))
+                satellites.extend(gsv_satellites(gsv))
         self._fix = apply_gsv(self._fix, snr_values)
+        self._fix = apply_satellites(self._fix, satellites, saw_gsv)
         return self._fix
 
     def close(self) -> None:

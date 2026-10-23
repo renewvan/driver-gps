@@ -60,6 +60,18 @@ _Avoid_: Signal strength (too generic — this project's field name is
 avg_snr_db), RSSI (a different metric family; GPS receivers report C/N0,
 not received signal strength).
 
+**satellites**:
+One retained array of every satellite the receiver lists in view in its GSV
+sentences, any constellation: `{constellation, prn, snr_db, elevation_deg,
+azimuth_deg}` each. The per-satellite detail behind `avg_snr_db`, and like it
+independent of fix status. A satellite in view that the receiver is not yet
+measuring keeps its entry with `snr_db: null` (never 0), unlike
+`avg_snr_db`, which skips it. Rebuilt from each poll window and deduplicated
+by `(constellation, prn)`, since the receiver repeats each constellation's
+GSV set about once a second. Not the same population as `satellites_in_use`.
+_Avoid_: Sky, sat list, tracked satellites (GSV lists satellites in view, not
+only those the receiver is tracking with a signal).
+
 **HDOP**:
 Horizontal Dilution of Precision — a unitless multiplier on raw
 horizontal position error, driven by satellite *geometry* (how spread
