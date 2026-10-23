@@ -7,9 +7,12 @@ function, no I/O).
 
 from driver_gps.nmea import (
     GpsFix,
+    Satellite,
     apply_gga,
     apply_gsv,
     apply_rmc,
+    apply_satellites,
+    gsv_satellites,
     gsv_snr_values,
     parse_gga,
     parse_gsv,
@@ -124,3 +127,94 @@ def test_apply_gga_no_fix_preserves_avg_snr_db() -> None:
     cleared = apply_gga(had_fix_and_signal, no_fix_gga)
     assert cleared.fix_quality == "no_fix"
     assert cleared.avg_snr_db == had_fix_and_signal.avg_snr_db
+
+
+_GSV_BEIDOU = "$BDGSV,1,1,01,23,05,012,25*59"
+_GSV_NONE_IN_VIEW = "$GPGSV,1,1,00*79"
+
+
+def _satellites(*sentences: str) -> list[Satellite]:
+    out: list[Satellite] = []
+    for sentence in sentences:
+        gsv = parse_gsv(sentence)
+        assert gsv is not None, sentence
+        out.extend(gsv_satellites(gsv))
+    return out
+
+
+def test_gsv_satellites_maps_talker_to_constellation_and_keeps_every_field() -> None:
+    assert _satellites(_GSV_GPS, _GSV_GLONASS) == [
+        Satellite("gps", 10, 38.0, 45, 110),
+        Satellite("gps", 15, 42.0, 60, 220),
+        Satellite("gps", 21, 35.0, 30, 300),
+        Satellite("glonass", 65, 30.0, 20, 150),
+        Satellite("glonass", 70, 44.0, 55, 280),
+    ]
+
+
+def test_gsv_satellites_maps_beidou_bd_talker() -> None:
+    assert _satellites(_GSV_BEIDOU) == [Satellite("beidou", 23, 25.0, 5, 12)]
+
+
+def test_gsv_satellites_keeps_a_satellite_with_no_snr_as_none_not_zero() -> None:
+    # gsv_snr_values drops these; the satellite is still in view, so it must be listed.
+    assert _satellites(_GSV_PARTIAL_TRACK) == [
+        Satellite("gps", 10, None, 45, 110),
+        Satellite("gps", 15, None, 60, 220),
+    ]
+
+
+def test_gsv_satellites_for_a_zero_satellite_sentence_is_empty() -> None:
+    assert _satellites(_GSV_NONE_IN_VIEW) == []
+
+
+def test_apply_satellites_dedupes_the_repeated_gsv_set_and_sorts() -> None:
+    # The receiver repeats each constellation's set every second: a 3 s window holds 3 copies.
+    window = _satellites(_GSV_GLONASS, _GSV_GPS, _GSV_GLONASS, _GSV_GPS, _GSV_GLONASS, _GSV_GPS)
+    fix = apply_satellites(GpsFix(), window, saw_gsv=True)
+    assert fix.satellites is not None
+    assert [(s.constellation, s.prn) for s in fix.satellites] == [
+        ("glonass", 65),
+        ("glonass", 70),
+        ("gps", 10),
+        ("gps", 15),
+        ("gps", 21),
+    ]
+
+
+def test_apply_satellites_latest_report_of_a_satellite_wins() -> None:
+    earlier = [Satellite("gps", 10, 20.0, 45, 110)]
+    later = [Satellite("gps", 10, 38.0, 46, 111)]
+    fix = apply_satellites(GpsFix(), earlier + later, saw_gsv=True)
+    assert fix.satellites == (Satellite("gps", 10, 38.0, 46, 111),)
+
+
+def test_apply_satellites_drops_a_satellite_absent_from_the_new_window() -> None:
+    had = apply_satellites(GpsFix(), _satellites(_GSV_GPS, _GSV_GLONASS), saw_gsv=True)
+    now = apply_satellites(had, _satellites(_GSV_GLONASS), saw_gsv=True)
+    assert now.satellites is not None
+    assert {s.constellation for s in now.satellites} == {"glonass"}
+
+
+def test_apply_satellites_with_no_gsv_in_window_keeps_the_last_sky() -> None:
+    had = apply_satellites(GpsFix(), _satellites(_GSV_GPS), saw_gsv=True)
+    assert apply_satellites(had, [], saw_gsv=False) == had
+
+
+def test_apply_satellites_with_gsv_but_nothing_in_view_is_empty_not_absent() -> None:
+    fix = apply_satellites(GpsFix(), _satellites(_GSV_NONE_IN_VIEW), saw_gsv=True)
+    assert fix.satellites == ()
+
+
+def test_apply_satellites_is_absent_before_any_gsv() -> None:
+    assert apply_satellites(GpsFix(), [], saw_gsv=False).satellites is None
+
+
+def test_apply_gga_no_fix_preserves_satellites() -> None:
+    gga = parse_gga(_GGA_FIX)
+    no_fix_gga = parse_gga(_GGA_NO_FIX)
+    assert gga is not None and no_fix_gga is not None
+    seen = apply_satellites(apply_gga(GpsFix(), gga), _satellites(_GSV_GPS), saw_gsv=True)
+    cleared = apply_gga(seen, no_fix_gga)
+    assert cleared.fix_quality == "no_fix"
+    assert cleared.satellites == seen.satellites

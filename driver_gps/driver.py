@@ -17,6 +17,7 @@ from pathlib import Path
 
 from driver_gps.config import AppConfig
 from driver_gps.device_info import build_info_payload
+from driver_gps.nmea import Satellite
 from driver_gps.publisher import Publisher
 from driver_gps.serial_reader import SerialReader
 
@@ -27,12 +28,26 @@ def _topic(device_id: str, prop: str) -> str:
     return f"renewvan/gps/{device_id}/{prop}"
 
 
+def satellites_payload(satellites: tuple[Satellite, ...]) -> list[dict[str, object]]:
+    """The `satellites` array exactly as hub/schema/gps.schema.json defines an item."""
+    return [
+        {
+            "constellation": sat.constellation,
+            "prn": sat.prn,
+            "snr_db": sat.snr_db,
+            "elevation_deg": sat.elevation_deg,
+            "azimuth_deg": sat.azimuth_deg,
+        }
+        for sat in satellites
+    ]
+
+
 def read_and_publish(publisher: Publisher, reader: SerialReader, config: AppConfig) -> None:
     """Read the latest NMEA fix and publish every live field.
 
-    fix_quality/satellites_in_use/avg_snr_db are published whenever
-    available (avg_snr_db is independent of fix_quality -- it may be
-    absent on the very first poll before any GSV sentence has streamed
+    fix_quality/satellites_in_use/avg_snr_db/satellites are published whenever
+    available (avg_snr_db and satellites are independent of fix_quality -- they
+    may be absent on the very first poll before any GSV sentence has streamed
     through); every other field is published only once a fix is acquired
     (fix_quality != "no_fix") -- matches hub/schema/gps.schema.json's
     conditional-optional fields.
@@ -44,6 +59,9 @@ def read_and_publish(publisher: Publisher, reader: SerialReader, config: AppConf
     publisher.publish(_topic(device_id, "satellites_in_use"), json.dumps(fix.satellites_in_use))
     if fix.avg_snr_db is not None:
         publisher.publish(_topic(device_id, "avg_snr_db"), json.dumps(fix.avg_snr_db))
+    if fix.satellites is not None:
+        payload = json.dumps(satellites_payload(fix.satellites))
+        publisher.publish(_topic(device_id, "satellites"), payload)
 
     if fix.fix_quality == "no_fix":
         logger.info(

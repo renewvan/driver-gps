@@ -29,6 +29,33 @@ _FIX_QUALITY = {
 
 _KNOTS_TO_KMH = 1.852
 
+# GSV talker ID -> hub/schema/gps.schema.json's constellation enum. GN (multi-constellation
+# talker) never appears on a GSV sentence; a receiver emits one GSV set per constellation.
+# Anything not listed is "other" so a new talker never drops its satellites.
+_CONSTELLATION = {
+    "GP": "gps",
+    "GL": "glonass",
+    "GA": "galileo",
+    "GB": "beidou",
+    "BD": "beidou",
+    "GQ": "qzss",
+}
+
+
+@dataclass(frozen=True)
+class Satellite:
+    """One satellite in view, from a GSV slot -- hub/schema/gps.schema.json's `satellites` item.
+
+    snr_db/elevation_deg/azimuth_deg are None when the receiver leaves that GSV field blank
+    (a satellite it knows of but is not yet measuring); never 0.
+    """
+
+    constellation: str
+    prn: int
+    snr_db: float | None
+    elevation_deg: int | None
+    azimuth_deg: int | None
+
 
 @dataclass(frozen=True)
 class GpsFix:
@@ -51,6 +78,7 @@ class GpsFix:
     course_deg: float | None = None
     fix_time: str | None = None
     avg_snr_db: float | None = None
+    satellites: tuple[Satellite, ...] | None = None
 
 
 def parse_gga(line: str) -> pynmea2.types.talker.GGA | None:
@@ -104,6 +132,39 @@ def gsv_snr_values(gsv: pynmea2.types.talker.GSV) -> list[float]:
     return values
 
 
+def _optional_number(raw: str | None, kind: type[int] | type[float]) -> int | float | None:
+    """A GSV numeric field as `kind`, None when the receiver left it blank."""
+    if raw in (None, ""):
+        return None
+    return kind(raw)
+
+
+def gsv_satellites(gsv: pynmea2.types.talker.GSV) -> list[Satellite]:
+    """This GSV sentence's up-to-4 satellites, every one the receiver lists.
+
+    Unlike gsv_snr_values, a satellite with a blank SNR is kept (snr_db=None): it is in view,
+    and a consumer shows "no signal yet" for it. Only empty slots (trailing slots of a set's
+    last sentence, blank PRN) are skipped. A PRN that is not a positive integer is skipped,
+    since the schema cannot represent it.
+    """
+    constellation = _CONSTELLATION.get(gsv.talker, "other")
+    satellites: list[Satellite] = []
+    for i in (1, 2, 3, 4):
+        prn = getattr(gsv, f"sv_prn_num_{i}")
+        if not prn or not prn.isdigit() or int(prn) < 1:
+            continue
+        satellites.append(
+            Satellite(
+                constellation=constellation,
+                prn=int(prn),
+                snr_db=_optional_number(getattr(gsv, f"snr_{i}"), float),
+                elevation_deg=_optional_number(getattr(gsv, f"elevation_deg_{i}"), int),
+                azimuth_deg=_optional_number(getattr(gsv, f"azimuth_{i}"), int),
+            )
+        )
+    return satellites
+
+
 def apply_gga(fix: GpsFix, gga: pynmea2.types.talker.GGA) -> GpsFix:
     """Fold a parsed GGA sentence's quality/satellite/HDOP/position/altitude fields onto `fix`.
 
@@ -118,6 +179,7 @@ def apply_gga(fix: GpsFix, gga: pynmea2.types.talker.GGA) -> GpsFix:
             fix_quality="no_fix",
             satellites_in_use=int(gga.num_sats or 0),
             avg_snr_db=fix.avg_snr_db,
+            satellites=fix.satellites,
         )
     return replace(
         fix,
@@ -166,3 +228,23 @@ def apply_gsv(fix: GpsFix, snr_values: list[float]) -> GpsFix:
     if not snr_values:
         return fix
     return replace(fix, avg_snr_db=round(sum(snr_values) / len(snr_values), 1))
+
+
+def apply_satellites(fix: GpsFix, satellites: list[Satellite], saw_gsv: bool) -> GpsFix:
+    """Fold the satellites seen in one poll window onto `fix`, independent of fix_quality.
+
+    `satellites` is every GSV slot of the window, any constellation; `saw_gsv` is whether the
+    window carried any GSV sentence at all. The receiver repeats each constellation's whole GSV
+    set about once a second, so a window holds several copies of the same satellite: the last
+    one wins, keyed by (constellation, prn). A satellite absent from the window drops out, so a
+    set satellite leaves the array.
+
+    A window with no GSV sentence leaves `satellites` unchanged (stale, not cleared), the same
+    rule as avg_snr_db. A window with GSV but no satellites (`$GPGSV,1,1,00`: the receiver
+    reports nothing in view) sets the empty tuple, which is published as `[]`.
+    """
+    if not saw_gsv:
+        return fix
+    latest = {(sat.constellation, sat.prn): sat for sat in satellites}
+    ordered = sorted(latest.values(), key=lambda sat: (sat.constellation, sat.prn))
+    return replace(fix, satellites=tuple(ordered))
