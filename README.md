@@ -1,17 +1,17 @@
 # driver-gps
 
-USB GPS module device (GLONASS/BeiDou/GPS) for renewvan position telemetry
+USB GPS module driver (GLONASS/BeiDou/GPS) for renewvan position telemetry
 
 Scaffolded from `renewvan/driver-tank`'s reference shape via `renewvan/skills`'
-`scaffold-driver` skill (per the **Device** term in `hub/docs/architecture.md`'s
-Terminology section: "anything that publishes one specific device or feed
-onto the renewvan bus, normalized into the device model"). Layout: pure,
+`scaffold-driver` skill (a **Driver** in the sense of `hub/docs/architecture.md`'s
+Terminology section: software that publishes one specific piece of hardware or feed
+onto the renewvan bus, normalized into the device model). Layout: pure,
 unit-testable conversion math with no I/O, a layered
 `config.default.ini`/`config.ini` loader (`config.py`), a persistent MQTT
 publisher with LWT (`publisher.py`), a thin publish loop (`driver.py`), a
 systemd unit, and its own Dockerfile + CI publishing a versioned image.
 
-**This device owns the sensing**: it reads a USB GPS/GLONASS/BeiDou module
+**This Driver owns the sensing**: it reads a USB GPS/GLONASS/BeiDou module
 directly over its serial port (NMEA 0183 sentences, no vendor cloud/MQTT
 feed to remap), parses with `pynmea2`, and publishes via `pyserial`.
 
@@ -22,7 +22,7 @@ Retained, under `renewvan/gps/<id>/`:
 Every field is **live** (republished on every poll, default 3s) — there
 are no identity/startup-only fields. Position tracking has no meaningful
 "publish once" subset; downstream logging (the `logger` repo) is what
-turns this live stream into a trip history, not this device.
+turns this live stream into a trip history, not this Driver.
 
 - `fix_quality` — `no_fix` / `gps` / `dgps` / `pps` / `rtk` / `float_rtk` / `estimated` / `manual` / `simulation` (GGA sentence's fix-quality field); unconditional
 - `satellites_in_use` — integer ≥0 (GGA); unconditional, 0 when `fix_quality` is `no_fix`
@@ -35,41 +35,42 @@ turns this live stream into a trip history, not this device.
 - `speed_kmh` — number ≥0, ground speed converted from RMC's knots (×1.852); present only when `fix_quality != no_fix`
 - `course_deg` — number 0–360, track made good, degrees true (RMC); present only when `fix_quality != no_fix`
 - `fix_time` — string, ISO-8601 UTC timestamp with explicit `+00:00` offset (RMC date+time — the GPS clock is always UTC); present only when `fix_quality != no_fix`
+- `driver` — string, always `"gps"`: the key of the Driver that publishes this instance (equals manifest.json's `driver` and the `renewvan/gps/info` segment). Republished on every poll with the other retained fields, so it survives a broker restart or reconnect; unconditional, even without a fix.
 
-**Device liveness** (not GPS-keyed):
+**Driver liveness** (not GPS-keyed):
 - `renewvan/gps/health` — `online`/`offline` via MQTT LWT
-- `renewvan/gps/info` — retained Device info (see below)
+- `renewvan/gps/info` — retained Driver info (see below)
 
 Payload shapes match `hub`'s `schema/gps.schema.json`.
 
-## Device info
+## Driver info
 
-On every MQTT connect the device publishes retained JSON to
+On every MQTT connect the Driver publishes retained JSON to
 `renewvan/gps/info`, **immediately before** `online` on
-`renewvan/gps/health`. Info stays retained when the device goes offline or its
+`renewvan/gps/health`. Info stays retained when the Driver goes offline or its
 last will fires, so a consumer can show "offline, last seen vX".
 
 The payload is `manifest.json` (repo root) plus two runtime fields:
 
-- **Manifest** — `device`, `product`, `source`, `publishes`, optional
+- **Manifest** — `driver`, `product`, `source`, `publishes`, optional
   `manufacturer`/`homepage`. It is the only hand-edited part. It must **not**
   contain `version` or `board_serial`; CI validates it against the hub's
-  `device-manifest.schema.json` through hub's reusable manifest workflow
+  `driver-manifest.schema.json` through hub's reusable manifest workflow
   (`.github/workflows/manifest.yml`; its `hub-ref` is the same pinned hub
   commit as the workflow itself, bump both together). The Docker image copies the manifest to `driver_gps/manifest.json`;
-  the device reads that copy beside its module and falls back to the repo-root
+  the Driver reads that copy beside its module and falls back to the repo-root
   file in a checkout.
 - **`version`** — the git release tag, and nothing else. The release workflow
-  passes it as the `DEVICE_VERSION` build argument, which the Dockerfile exposes
+  passes it as the `DRIVER_VERSION` build argument, which the Dockerfile exposes
   as an environment variable. When it is unset or empty (a checkout or
-  untagged image) the device reports the literal `dev`. There is no `version`
+  untagged image) the Driver reports the literal `dev`. There is no `version`
   file or `__version__`, and `pyproject.toml`'s `0.0.0` is a placeholder that
   nothing reads.
 - **`board_serial`** — the `Serial` line of the board's `/proc/cpuinfo`, read once
   at start (a default container can read it; no mount needed). Omitted when
   the file is unreadable or the serial is empty or all zeros.
 
-`driver_gps/device_info.py` is deliberately copied into each device repo rather than
+`driver_gps/driver_info.py` is deliberately copied into each Driver repo rather than
 shared as a package (`renewvan/hub#35`).
 
 ## Wiring
@@ -116,7 +117,8 @@ level).
 
 `config.default.ini` ships every key with a default. Copy
 `config.ini.example` to `config.ini` (gitignored) and override only what
-differs.
+differs. The section is `[driver]` (it was `[device]`); a `config.ini` still
+using `[device]` fails to load until edited — there is no compatibility shim.
 
 ## Running
 
@@ -150,6 +152,6 @@ ticked. It runs the tests, publishes only its own tag (never `:latest`) and writ
 to `main`. The process is shared by every renewvan repo and lives in `hub` (`hub/docs/adr/0015-one-release-process-via-reusable-workflows.md`);
 this repo's `release.yml` only says what it ships.
 
-The release tag is also stamped into the image as `DEVICE_VERSION` (see
-[Device info](#device-info)), so the version a device publishes always equals its
+The release tag is also stamped into the image as `DRIVER_VERSION` (see
+[Driver info](#driver-info)), so the version a Driver publishes always equals its
 image tag.

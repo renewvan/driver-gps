@@ -14,7 +14,7 @@ from driver_gps import publisher as publisher_module
 from driver_gps.config import MqttConfig
 from driver_gps.publisher import HEALTH_TOPIC, INFO_TOPIC, Publisher
 
-_INFO = '{"device": "gps", "version": "v1.2.3"}'
+_INFO = '{"driver": "gps", "version": "v1.2.3"}'
 
 
 @dataclass

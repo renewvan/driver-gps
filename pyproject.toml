@@ -1,7 +1,7 @@
 [project]
 name = "driver-gps"
 version = "0.0.0"  # placeholder, nothing reads it: the git release tag is the only version source
-description = "USB GPS module device (GLONASS/BeiDou/GPS) for renewvan position telemetry"
+description = "USB GPS module driver (GLONASS/BeiDou/GPS) for renewvan position telemetry"
 requires-python = ">=3.11"
 dependencies = [
     "paho-mqtt>=1.6,<2",

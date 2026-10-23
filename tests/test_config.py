@@ -6,7 +6,7 @@ from driver_gps.config import load_config
 def test_load_config_defaults() -> None:
     config = load_config()
     assert config.mqtt.port == 1883
-    assert config.device.id == "gps"
+    assert config.driver.id == "gps"
 
 
 def test_load_config_local_override(tmp_path: Path) -> None:

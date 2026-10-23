@@ -1,7 +1,7 @@
 """Pure NMEA 0183 sentence parsing and field mapping -> GpsFix.
 
 No I/O: takes raw sentence strings (as read off the serial port by
-serial_reader.py) through pynmea2 and maps the result onto this device's
+serial_reader.py) through pynmea2 and maps the result onto this Driver's
 canonical field names/units, matching hub/schema/gps.schema.json. Every
 function here is pure and fixture-testable -- no serial hardware required
 (prior art: driver-tank's calibration.py).

@@ -7,7 +7,7 @@
 [mqtt]
 host = 192.168.1.10
 
-[device]
+[driver]
 ; Found via `dmesg | tail` after plugging the module in -- see
-; config.default.ini's [device] comments for the ttyACM0 vs ttyUSB0 split.
+; config.default.ini's [driver] comments for the ttyACM0 vs ttyUSB0 split.
 serial_port = /dev/ttyUSB0

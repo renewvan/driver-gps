@@ -1,4 +1,4 @@
-"""Behavioural tests for the published Device info payload.
+"""Behavioural tests for the published Driver info payload.
 
 Seam: build_info_payload() -- manifest + environment + /proc/cpuinfo in,
 retained-info JSON out. No MQTT broker or hardware required.
@@ -7,7 +7,8 @@ retained-info JSON out. No MQTT broker or hardware required.
 import json
 from pathlib import Path
 
-from driver_gps.device_info import build_info_payload
+from driver_gps.driver import DRIVER_KEY
+from driver_gps.driver_info import build_info_payload
 
 
 def _info(env: dict[str, str], cpuinfo: Path | None = None) -> dict:
@@ -16,17 +17,21 @@ def _info(env: dict[str, str], cpuinfo: Path | None = None) -> dict:
     )
 
 
-def test_info_identifies_the_gps_device_and_what_it_publishes() -> None:
+def test_info_identifies_the_gps_driver_and_what_it_publishes() -> None:
     info = _info({})
 
-    assert info["device"] == "gps"
+    assert info["driver"] == "gps"
     assert info["publishes"] == ["gps"]
     assert info["product"]
     assert info["source"]
 
 
+def test_instances_name_the_driver_key_the_info_is_published_under() -> None:
+    assert DRIVER_KEY == _info({})["driver"]
+
+
 def test_info_carries_the_stamped_version() -> None:
-    assert _info({"DEVICE_VERSION": "v1.2.3"})["version"] == "v1.2.3"
+    assert _info({"DRIVER_VERSION": "v1.2.3"})["version"] == "v1.2.3"
 
 
 def test_info_version_is_dev_when_unset() -> None:
@@ -34,7 +39,7 @@ def test_info_version_is_dev_when_unset() -> None:
 
 
 def test_info_version_is_dev_when_blank() -> None:
-    assert _info({"DEVICE_VERSION": ""})["version"] == "dev"
+    assert _info({"DRIVER_VERSION": ""})["version"] == "dev"
 
 
 def _cpuinfo(tmp_path: Path, text: str) -> Path:

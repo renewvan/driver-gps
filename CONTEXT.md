@@ -8,7 +8,7 @@ independent of the Python that computes it.
 **Fix**:
 A single resolved position reading from the GPS/GLONASS/BeiDou module,
 combining its most recent GGA (position/quality/satellites/altitude/HDOP)
-and RMC (speed/course/UTC date-time) NMEA sentences. Everything the device
+and RMC (speed/course/UTC date-time) NMEA sentences. Everything this Driver
 publishes under `renewvan/gps/<id>/` is derived from the current fix.
 _Avoid_: Reading, sample (NMEA-specific term, not this project's vocabulary).
 
@@ -22,13 +22,22 @@ not stale or zeroed.
 _Avoid_: Fix type (NMEA term; this project calls it fix_quality to match
 the published field name).
 
-**Live field** (this device):
+**Live field** (this Driver):
 Every field driver-gps publishes is live — republished on every poll
 (default 3s), with no identity/startup-only subset (contrast with
 `driver-tank`, where `fluid_type`/`capacity_l` publish once). Position has
 no meaningful "publish once" value; turning the live stream into a trip
-history is the `logger` repo's job, not this device's.
-_Avoid_: Identity field (doesn't apply to this device — don't invent one).
+history is the `logger` repo's job, not this Driver's.
+_Avoid_: Identity field (doesn't apply to this Driver — don't invent one).
+
+**driver**:
+Attribution, not a measurement: the key of the Driver that publishes this
+instance (`"gps"`, equal to manifest.json's `driver` and to the
+`renewvan/gps/info` topic segment), published retained on
+`renewvan/gps/<id>/driver`. It is the one field that is not derived from the
+fix, so it is published on every poll even with `no_fix`.
+_Avoid_: Device (a Driver is the software that publishes; the GPS module is
+hardware).
 
 **fix_time**:
 UTC timestamp of the fix, built from the RMC sentence's date+time fields.
@@ -41,7 +50,7 @@ specifically the GPS-derived UTC fix time).
 **speed_kmh / course_deg**:
 Ground speed and track-made-good, both from the RMC sentence.
 `speed_kmh` is converted from RMC's native knots (×1.852) — km/h is this
-device's canonical unit, not knots, matching the "canonical SI-adjacent unit
+Driver's canonical unit, not knots, matching the "canonical SI-adjacent unit
 in the published field name" convention `driver-tank` set with `capacity_l`.
 `course_deg` is degrees true (not magnetic), 0–360.
 _Avoid_: Heading (ambiguous with magnetic heading; RMC's course is track
