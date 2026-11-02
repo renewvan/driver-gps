@@ -2,7 +2,7 @@
 
 USB GPS module driver (GLONASS/BeiDou/GPS) for renewvan position telemetry
 
-Scaffolded from `renewvan/driver-tank`'s reference shape via `renewvan/skills`'
+Scaffolded from `renewvan/driver-template` via `renewvan/skills`'
 `scaffold-driver` skill (a **Driver** in the sense of `hub/docs/architecture.md`'s
 Terminology section: software that publishes one specific piece of hardware or feed
 onto the renewvan bus, normalized into the device model). Layout: pure,
