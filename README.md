@@ -1,11 +1,11 @@
 # driver-gps
 
-USB GPS module driver (GLONASS/BeiDou/GPS) for renewvan position telemetry
+USB GPS module driver (GLONASS/BeiDou/GPS) for Renewvan position telemetry
 
 Scaffolded from `renewvan/driver-template` via `renewvan/skills`'
 `scaffold-driver` skill (a **Driver** in the sense of `hub/docs/architecture.md`'s
 Terminology section: software that publishes one specific piece of hardware or feed
-onto the renewvan bus, normalized into the device model). Layout: pure,
+onto the Renewvan bus, normalized into the device model). Layout: pure,
 unit-testable conversion math with no I/O, a layered
 `config.default.ini`/`config.ini` loader (`config.py`), a persistent MQTT
 publisher with LWT (`publisher.py`), a thin publish loop (`driver.py`), a
@@ -149,7 +149,7 @@ by tag (never builds from source — see
 
 A beta from a feature branch: dispatch the workflow on that branch with **prerelease**
 ticked. It runs the tests, publishes only its own tag (never `:latest`) and writes nothing
-to `main`. The process is shared by every renewvan repo and lives in `hub` (`hub/docs/adr/0015-one-release-process-via-reusable-workflows.md`);
+to `main`. The process is shared by every Renewvan repo and lives in `hub` (`hub/docs/adr/0015-one-release-process-via-reusable-workflows.md`);
 this repo's `release.yml` only says what it ships.
 
 The release tag is also stamped into the image as `DRIVER_VERSION` (see
